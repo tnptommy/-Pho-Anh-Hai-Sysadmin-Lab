@@ -105,9 +105,9 @@ Example:
 
 ## 5.2 Create Shared Folders  
 ```
-D:\Shares\Recipes
-D:\Shares\Invoices
-D:\Shares\HRDocs
+E:\Shares\Recipes
+E:\Shares\Invoices
+E:\Shares\HRDocs
 ```
 
 ![File_Structure](screenshots/14_File_Structure.png)
