@@ -1,174 +1,274 @@
-# 🍜 Pho Anh Hai Sysadmin Lab  
-**Inspired by the Vietnamese horror game _Brother Hai’s Pho Restaurant_**
+# 🍜 Pho Anh Hai – Windows Sysadmin Infrastructure Lab  
+**Inspired by the Vietnamese indie horror game _Brother Hai’s Pho Restaurant_**  
+This project builds a full Windows Server enterprise environment for a fictional restaurant company: **Pho Anh Hai Co. Ltd**.  
+The lab uses VMware Workstation, Windows Server 2025, and Windows 11.
 
-This project is a full Windows Server System Administration lab designed to simulate the IT infrastructure of a small business: **Pho Anh Hai Co. Ltd**.  
-The goal is to build a realistic, enterprise-style environment using VMware Workstation, Windows Server 2025, and Windows 11.
-
-The lab includes:
-- Active Directory Domain Services  
-- DNS, DHCP  
-- Group Policy (GPO)  
-- DFS File Server  
-- Internal PKI (Certificate Authority)  
-- Department-based clients with different permissions  
-
-Everything is set up in a clean and professional way, following real-world IT system administration practices.
+The goal:  
+✔ Learn real System Administration  
+✔ Practice Active Directory, DNS, DHCP, GPO, DFS, PKI  
+✔ Build a professional portfolio project  
+✔ Simulate the IT system of a small restaurant chain
 
 ---
 
-## 1. Lab Overview
+# 1. 📡 Network Setup
 
-**Domain name:** `phoanhhai.local`  
-**Inspiration:** Brother Hai’s Pho Restaurant (Vietnamese horror story-driven game)  
-**Topology:** 3 servers + 4 clients  
-
-### Servers (Windows Server 2025)
-- `SERVER-DC` — Domain Controller, DNS, DHCP, PKI  
-- `SERVER-FILE` — File Server + DFS namespace  
-- `SERVER-MGMT` — Management Server (RSAT, GPO, AD tools)  
-
-### Clients (Windows 11)
-- `CLIENT-KITCHEN` — Kitchen staff  
-- `CLIENT-CASHIER` — Cashier / POS (USB locked)  
-- `CLIENT-SERVICE` — Service staff  
-- `CLIENT-DELIVERY` — Delivery staff  
-
-The environment simulates how a real restaurant company could use IT systems for internal operations.
-
----
-
-## 2. Network Topology
-
-### Network
-- VMware Host-Only Network: **VMnet10**  
+### VMware Network Configuration  
+All VMs use **VMnet10 – Host-only**  
 - Subnet: `10.10.10.0/24`  
-- DHCP: provided by SERVER-DC  
+- DHCP from VMware: **disabled**  
+- DHCP managed by SERVER-DC  
 
-### IP Plan
-| Device | IP | Notes |
-|--------|---------|-------|
-| SERVER-DC | 10.10.10.10 | AD DS / DNS / DHCP / PKI |
-| SERVER-FILE | 10.10.10.20 | File server |
-| SERVER-MGMT | 10.10.10.30 | Management tools |
-| Clients | DHCP | 10.10.10.100–200 |
+**Screenshot:**  
+![vmnet10](screenshots/01_VMnet10_Config.png)
 
 ---
 
-## 3. Active Directory Structure
-```
-phoanhhai.local
-└── 🏢 Pho Anh Hai Co. Ltd
-    ├── 🖥️ Servers
-    ├── 🍳 Kitchen
-    ├── 🧾 Cashier
-    ├── 👨‍🍳 Service Staff
-    ├── 🚚 Delivery
-    ├── 👔 Management
-    └── 👥 Groups
-```
+# 2. 🏢 Server Overview
 
+| Server Name | Function | IP |
+|-------------|----------|----|
+| **SERVER-DC** | Domain Controller, DNS, DHCP, PKI | 10.10.10.10 |
+| **SERVER-FILE** | File Server + DFS Namespace | 10.10.10.20 |
+| **SERVER-MGMT** | Admin Tools (RSAT, GPO, ADUC) | 10.10.10.30 |
 
+**Screenshot – All servers running:**  
+![ServersRunning](screenshots/02_AllServersRunning.png)
 
-### Security Groups
+---
+
+# 3. 🧱 SERVER-DC Setup  
+Domain Controller + DNS + DHCP + PKI
+
+## 3.1 Rename PC → SERVER-DC  
+![DC_Rename](screenshots/03_SERVER-DC_Rename.png)
+
+## 3.2 Static IP Configuration  
+IP: `10.10.10.10`  
+DNS: `10.10.10.10`  
+![DC_IP](screenshots/04_SERVER-DC_IP.png)
+
+## 3.3 Install AD DS  
+Server Manager → Add Roles → **Active Directory Domain Services**  
+![ADDS_Role](screenshots/05_ADDS_Role.png)
+
+## 3.4 Promote to Domain Controller  
+Domain: `phoanhhai.local`  
+![PromoteDC](screenshots/06_Promote_DC.png)
+
+## 3.5 Install DHCP  
+![DHCP_Role](screenshots/07_DHCP_Role.png)
+
+## 3.6 Create DHCP Scope  
+Range: `10.10.10.100–10.10.10.200`  
+DNS Option: `10.10.10.10`  
+![DHCP_Scope](screenshots/08_DHCP_Scope.png)
+
+## 3.7 Install PKI (Certification Authority)  
+Enterprise Root CA  
+![PKI_CA](screenshots/09_PKI_CA.png)
+
+---
+
+# 4. 🗂️ Active Directory Structure  
+OU: **Pho Anh Hai Co. Ltd**  
+Sub-OUs: Kitchen, Cashier, Service Staff, Delivery, Management, Servers, Groups  
+
+**Screenshot:**  
+![AD_OU](screenshots/10_AD_OU_Structure.png)
+
+## 4.1 Security Groups  
 - GG_Kitchen  
 - GG_Cashier  
 - GG_ServiceStaff  
 - GG_Delivery  
 - GG_Management  
 
----
+![AD_Groups](screenshots/11_AD_Groups.png)
 
-## 4. File Server & DFS
+## 4.2 Department Users  
+Example:  
+- kitchen.user  
+- cashier.user  
+- service.user  
+- delivery.user  
+- manager.user  
 
-**DFS Namespace:**  
-`\\phoanhhai.local\CompanyData`
-
-**Shared folders:**
-- Recipes  
-- Invoices  
-- HRDocs  
-
-### Permission Model  
-| Folder | Kitchen | Cashier | Service | Delivery | Management |
-|--------|---------|---------|---------|----------|-------------|
-| Recipes | Modify | No | Read | Read | Modify |
-| Invoices | No | Modify | No | No | Modify |
-| HRDocs | No | No | No | No | Full |
-
-This simulates real-world access control inside a restaurant company.
+![AD_Users](screenshots/12_AD_Users.png)
 
 ---
 
-## 5. Group Policy (GPO)
+# 5. 📁 SERVER-FILE Setup (DFS + NTFS)
 
-### Domain-wide
-- Password policy  
-- Account lockout policy  
-- Wallpaper branding (company wallpaper)
+## 5.1 Rename to SERVER-FILE & join domain  
+![ServerFile_Join](screenshots/13_SERVER-FILE_JoinDomain.png)
 
-### Department GPO
-- **Cashier workstation USB locked**  
-  - Block read / write / execute for removable storage  
-- Auto-enroll certificates from PKI  
-- Desktop configuration for consistency  
+## 5.2 Create Shared Folders  
+```
+D:\Shares\Recipes
+D:\Shares\Invoices
+D:\Shares\HRDocs
+```
 
----
+![File_Structure](screenshots/14_File_Structure.png)
 
-##  6. Client Roles
+## 5.3 Share & NTFS Permissions  
+### Recipes  
+- GG_Kitchen → Modify  
+- GG_Management → Modify  
+- GG_ServiceStaff → Read  
 
-### `CLIENT-KITCHEN`
-- Modify Recipes  
-- Read-only for other folders  
-- Standard workstation
+![Recipes_Permissions](screenshots/15_Recipes_NTFS.png)
 
-### `CLIENT-CASHIER`
-- Modify Invoices  
-- **USB completely blocked** (security)  
-- POS-style restricted workstation
+### Invoices  
+- GG_Cashier → Modify  
+- GG_Management → Modify  
 
-### `CLIENT-SERVICE`
-- Read Recipes  
-- Basic staff workstation
+![Invoices_Permissions](screenshots/16_Invoices_NTFS.png)
 
-### `CLIENT-DELIVERY`
-- Read Recipes  
-- Used for delivery schedules and printing
+### HRDocs  
+- GG_Management → Full Control  
 
----
+![HRDocs_Permissions](screenshots/17_HRDocs_NTFS.png)
 
-## 7. Project Goal
+## 5.4 DFS Namespace  
+Namespace path:
 
-This project shows:
-- How to design a small-business Windows Server environment  
-- How to use AD, DNS, DHCP, GPO, DFS, and PKI  
-- How to manage users, groups, departments, and permissions  
-- How to lock down sensitive workstations (Cashier)  
-- How IT supports real-world restaurant operations  
+``` \\phoanhhai.local\CompanyData ```
 
-Although inspired by the “Brother Hai’s Pho Restaurant” game, this project is **100% professional and realistic**, following enterprise system administration standards.
+**Screenshot:**  
+![DFS_Namespace](screenshots/18_DFS_Namespace.png)
 
 ---
 
-## 8. How To Use This Lab
+# 6. 🛠️ SERVER-MGMT Setup (Admin Tools)
 
-You can:
-- Rebuild the whole lab for learning Windows Sysadmin  
-- Practice AD/GPO administration  
-- Demonstrate your IT skills in your portfolio  
-- Use it for job interviews  
-- Expand it with more services (WSUS, App Server, SIEM, etc.)
+## 6.1 Rename + Join Domain  
+![MGMT_Join](screenshots/19_SERVER-MGMT_JoinDomain.png)
+
+## 6.2 Install Admin Tools (RSAT)  
+Installed tools:
+- Active Directory Users and Computers  
+- Group Policy Management  
+- DNS Manager  
+- DHCP Manager  
+- Certificate Authority Tools  
+- DFS Management Tool  
+
+**Screenshot:**  
+![RSAT_Installed](screenshots/20_RSAT_Installed.png)
 
 ---
 
-## ❤️ Credits
+# 7. 🧑‍💻 Client Setup  
 
-- **Inspired by:** Brother Hai’s Pho Restaurant (Indie Vietnamese horror game)  
-- **Created by:** Tommy Huynh  
-- **Purpose:** System Administration Portfolio Project (2025)  
+All Windows 11 clients use **DHCP**.
+
+**Clients:**
+- CLIENT-KITCHEN  
+- CLIENT-CASHIER  
+- CLIENT-SERVICE  
+- CLIENT-DELIVERY  
+
+## 7.1 DHCP Lease Confirmation  
+![DHCP_Leases](screenshots/21_DHCP_Leases.png)
+
+## 7.2 Join Domain & Move to Correct OU  
+![Client_Join](screenshots/22_Client_JoinDomain.png)
 
 ---
 
-## 📬 Contact
-Feel free to reach out if you want to learn or collaborate.  
+# 8. 🔐 Group Policy (GPO)
 
+## 8.1 Password Policy (Domain Level)  
+![PasswordPolicy](screenshots/23_GPO_PasswordPolicy.png)
+
+## 8.2 Desktop Wallpaper (Branding)  
+![Wallpaper_GPO](screenshots/24_GPO_Wallpaper.png)
+
+## 8.3 USB Block for Cashier Department  
+Applied only to **OU: Cashier**
+
+Policies:
+- Removable Disks: Deny read  
+- Removable Disks: Deny write  
+- Removable Disks: Deny execute  
+
+**Screenshot:**  
+![USB_Block](screenshots/25_GPO_USB_Block.png)
+
+---
+
+# 9. 🔑 PKI – Certificate Auto-Enrollment
+
+## 9.1 Auto-Enrollment GPO  
+![AutoEnroll_GPO](screenshots/26_Cert_AutoEnroll_GPO.png)
+
+## 9.2 Client Certificate Received  
+![Client_Cert](screenshots/27_Client_Cert_Installed.png)
+
+---
+
+# 10. 🧪 Client Testing (Real Business Simulation)
+
+## 10.1 CLIENT-KITCHEN  
+- Can modify **Recipes**  
+- Cannot access **Invoices**  
+
+![Kitchen_EditRecipes](screenshots/28_Kitchen_EditRecipes.png)  
+![Kitchen_DeniedInvoices](screenshots/29_Kitchen_DeniedInvoices.png)
+
+---
+
+## 10.2 CLIENT-CASHIER  
+- USB fully blocked  
+- Can modify **Invoices**  
+
+![Cashier_USB_Blocked](screenshots/30_Cashier_USB_Blocked.png)  
+![Cashier_EditInvoices](screenshots/31_Cashier_EditInvoices.png)
+
+---
+
+## 10.3 CLIENT-SERVICE  
+- Recipes = Read-only  
+- Wallpaper applied  
+
+![Service_ReadOnly](screenshots/32_Service_ReadRecipes.png)  
+![Service_Wallpaper](screenshots/33_Service_Wallpaper.png)
+
+---
+
+## 10.4 CLIENT-DELIVERY  
+- Access **Recipes** (read only)  
+
+![Delivery_ReadRecipes](screenshots/34_Delivery_ReadRecipes.png)
+
+---
+
+# 11. 🎯 What This Project Demonstrates
+
+This lab shows full Windows Sysadmin capabilities:
+
+- Active Directory and OU design  
+- DNS & DHCP administration  
+- Group Policy enforcement  
+- File Server with NTFS permissions  
+- DFS namespace  
+- Internal PKI & certificate auto-enrollment  
+- Client configuration & department-based access control  
+- USB security policy  
+- Realistic enterprise documentation workflow  
+
+---
+
+# 12. ❤️ Inspiration  
+This project is inspired by the Vietnamese indie horror game:
+**_Brother Hai’s Pho Restaurant_**  
+but implemented in a **fully professional IT infrastructure design**.
+
+---
+
+# 13. 📬 Contact  
+Created by: **Tommy Huynh**  
+Use this project for learning, portfolio work, and system administration practice.
 
